@@ -8,14 +8,14 @@ This Spring Boot application serves as both the web frontend and API gateway for
 
 - Web-based UI for SMS spam detection
 - API gateway to prevent CORS issues
-- Integration with [lib-version](https://github.com/doda25-team12/lib-version) library
+- Integration with [lib-version](https://github.com/doda25-team6/lib-version) library
 - REST client for model-service communication
 
 ## Requirements
 
 - Java 25+
 - Maven 3.6+
-- Access to [model-service](https://github.com/doda25-team12/model-service) running on configured host
+- Access to [model-service](https://github.com/doda25-team6/model-service) running on configured host
 
 ## Configuration
 

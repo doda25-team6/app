@@ -53,6 +53,6 @@ This service acts as an API gateway, receiving requests from the web frontend an
 - **lib-version**: Version-aware library for version management
 - **model-service**: Backend ML service for spam classification
 
-See the [operation repository](https://github.com/doda25-team12/operation) for complete system documentation.
+See the [operation repository](https://github.com/doda25-team6/operation) for complete system documentation.
 
 

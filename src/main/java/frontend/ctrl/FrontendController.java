@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import team6.version.VersionUtil;
 import frontend.data.Sms;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -28,6 +29,11 @@ public class FrontendController {
         this.rest = rest;
         this.modelHost = env.getProperty("MODEL_HOST");
         assertModelHost();
+        
+        // F1: Use VersionUtil from lib-version for system information
+        VersionUtil versionUtil = VersionUtil.getInstance();
+        System.out.printf("[SMS Checker App] %s%n", versionUtil.getFullVersionInfo());
+        System.out.printf("[SMS Checker App] Library version: %s%n", versionUtil.getVersion());
     }
 
     private void assertModelHost() {
@@ -74,5 +80,19 @@ public class FrontendController {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    /**
+     * F1: Version information endpoint for monitoring purposes.
+     * Demonstrates usage of VersionUtil from lib-version library.
+     */
+    @GetMapping("/version")
+    @ResponseBody
+    public String getVersionInfo() {
+        VersionUtil versionUtil = VersionUtil.getInstance();
+        return String.format("{\"library\": \"%s\", \"version\": \"%s\", \"buildTime\": \"%s\"}", 
+                           "lib-version", 
+                           versionUtil.getVersion(), 
+                           versionUtil.getBuildTime());
     }
 }

@@ -16,9 +16,9 @@ COPY --from=builder /app/target/*.jar app.jar
 
 # F6 variables
 ENV SERVER_PORT=8080
-ENV MODEL_SERVICE_URL=http://model-service:8081
-ENV MODEL_HOST=http://model-service:8081
+ENV MODEL_SERVICE_URL=http://model-service
+ENV MODEL_SERVICE_PORT=8081
 
-EXPOSE 8080
+EXPOSE ${SERVER_PORT}
 
 CMD ["java", "-jar", "app.jar"]

@@ -30,4 +30,4 @@ ENV MODEL_HOST=${MODEL_HOST:-http://model-service:8081}
 EXPOSE ${SERVER_PORT}
 
 ENTRYPOINT ["sh", "-c"]
-CMD ["java -jar app.jar --server.port=${SERVER_PORT}} --model.host=${MODEL_HOST}"]
+CMD ["java -jar app.jar --server.port=${SERVER_PORT} --model.host=${MODEL_HOST}"]

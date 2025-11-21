@@ -3,7 +3,8 @@ FROM maven:latest AS builder
 
 WORKDIR /app
 
-COPY pom.xml .mvn/settings.xml ./
+COPY pom.xml .
+COPY .mvn/settings.xml .mvn/settings.xml
 
 RUN --mount=type=secret,id=GITHUB_TOKEN \
     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
@@ -23,9 +24,9 @@ WORKDIR /app
 # Copy the built JAR from builder stage
 COPY --from=builder /app/target/*.jar app.jar
 
-# F6 variables - Flexible container configuration
-ENV SERVER_PORT=${SERVER_PORT:-8080}
-ENV MODEL_HOST=${MODEL_HOST:-http://model-service:8081}
+# F6 variables
+ENV SERVER_PORT=8080
+ENV MODEL_HOST=http://model-service:8081
 
 # Expose the configurable port
 EXPOSE ${SERVER_PORT}

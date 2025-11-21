@@ -23,7 +23,7 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy the built JAR from builder stage
-COPY --from=builder /build/app/target/*.jar app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
 # F6 variables
 ENV SERVER_PORT=8080

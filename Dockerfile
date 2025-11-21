@@ -16,21 +16,12 @@ RUN --mount=type=secret,id=GITHUB_TOKEN \
     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
     mvn -B -s settings.xml clean package -DskipTests
 
-# F2: build with released lib-version from GitHub Package Registry
+# Now build the main application
 WORKDIR /build/app
 COPY app/pom.xml .
-
-# Set build arguments for GitHub authentication
-ARG GITHUB_USERNAME
-ARG GITHUB_TOKEN
-ENV GITHUB_USERNAME=${GITHUB_USERNAME}
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
-
-# F2: Resolve dependencies from GitHub Package Registry
-RUN mvn dependency:go-offline -B
-
-WORKDIR /build/app
 COPY app/src ./src
+
+# Build the application
 RUN mvn clean package -DskipTests
 
 # Runtime stage

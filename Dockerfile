@@ -48,10 +48,4 @@ ENV MODEL_HOST=${MODEL_HOST:-http://model-service:8081}
 # Expose the configurable port
 EXPOSE ${SERVER_PORT}
 
-<<<<<<< HEAD
-# Run the application
-CMD ["java", "-jar", "app.jar"]
-=======
-ENTRYPOINT ["sh", "-c"]
-CMD ["java -jar app.jar --server.port=${SERVER_PORT}} --model.host=${MODEL_HOST}"]
->>>>>>> 82c76f9 (feat: use secret token to fetch lib-version)
+CMD ["java -jar app.jar --server.port=${SERVER_PORT} --model.host=${MODEL_HOST}"]

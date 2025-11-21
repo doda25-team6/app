@@ -7,14 +7,14 @@ COPY pom.xml .mvn/settings.xml ./
 
 RUN --mount=type=secret,id=GITHUB_TOKEN \
     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
-    mvn -B -s settings.xml dependency:go-offline
+    mvn -B -s .mvn/settings.xml dependency:go-offline
 
 
 COPY src ./src
 
 RUN --mount=type=secret,id=GITHUB_TOKEN \
     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
-    mvn -B -s settings.xml clean package -DskipTests
+    mvn -B -s .mvn/settings.xml clean package -DskipTests
 
 # Stage 2: Runtime image
 FROM eclipse-temurin:17-jre

@@ -1,23 +1,23 @@
 # Multi-stage build for Spring Boot app with lib-version dependency
 FROM maven:latest AS builder
 
-WORKDIR /build
+WORKDIR /app
 
-# Copy lib-version source and build it first
-COPY lib-version ./lib-version
-WORKDIR /build/lib-version
-RUN mvn clean install -DskipTests
+COPY pom.xml .mvn/settings.xml ./
 
-# Now build the main application
-WORKDIR /build/app
-COPY app/pom.xml .
-COPY app/src ./src
+RUN --mount=type=secret,id=GITHUB_TOKEN \
+    export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+    mvn -B -s settings.xml dependency:go-offline
 
-# Build the application
-RUN mvn clean package -DskipTests
 
-# Runtime stage
-FROM openjdk:25-ea-jdk
+COPY src ./src
+
+RUN --mount=type=secret,id=GITHUB_TOKEN \
+    export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+    mvn -B -s settings.xml clean package -DskipTests
+
+# Stage 2: Runtime image
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
@@ -31,5 +31,5 @@ ENV MODEL_HOST=${MODEL_HOST:-http://model-service:8081}
 # Expose the configurable port
 EXPOSE ${SERVER_PORT}
 
-# Run the application
-CMD ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c"]
+CMD ["java -jar app.jar --server.port=${SERVER_PORT}} --model.host=${MODEL_HOST}"]

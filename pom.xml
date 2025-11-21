@@ -24,6 +24,16 @@
 		<java.version>25</java.version>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/doda25-team6/lib-version</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
 	<dependencies>
 	<!-- F1: Version-aware library dependency -->
 	<dependency>

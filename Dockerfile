@@ -9,28 +9,19 @@ RUN --mount=type=secret,id=GITHUB_TOKEN \
     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
     mvn -B -s settings.xml dependency:go-offline
 
-
 COPY src ./src
 
 RUN --mount=type=secret,id=GITHUB_TOKEN \
     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
     mvn -B -s settings.xml clean package -DskipTests
 
-# Now build the main application
-WORKDIR /build/app
-COPY app/pom.xml .
-COPY app/src ./src
-
-# Build the application
-RUN mvn clean package -DskipTests
-
-# Runtime stage
-FROM openjdk:25-ea-jdk
+# Stage 2: Runtime image
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
 # Copy the built JAR from builder stage
-COPY --from=builder /build/app/target/*.jar app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
 # F6 variables - Flexible container configuration
 ENV SERVER_PORT=${SERVER_PORT:-8080}

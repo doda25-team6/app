@@ -12,6 +12,13 @@
 	<groupId>sms</groupId>
 	<artifactId>frontend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	
+	<repositories>
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/doda25-team6/lib-version</url>
+		</repository>
+	</repositories>
 
 	<properties>
 		<java.version>25</java.version>

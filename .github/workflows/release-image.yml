@@ -7,15 +7,45 @@ permissions:
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v[0-9]+.[0-9]+.[0-9]+" 
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up JDK for Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Read version from pom.xml
+        id: pom
+        run: |
+          POM_VERSION=$(mvn -q -Dexpression=project.version -DforceStdout help:evaluate)
+          echo "POM_VERSION=$POM_VERSION" >> $GITHUB_ENV
+          echo "pom.xml version: $POM_VERSION"
+
+      - name: Extract version from tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"        # e.g. v1.2.3
+          TAG_VERSION="${TAG#v}"          # strip v -> 1.2.3
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          echo "Tag version: $TAG_VERSION"
+
+      - name: Validate version consistency
+        run: |
+          if [ "$POM_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) different than pom.xml version ($POM_VERSION)"
+            exit 1
+          fi
+          echo "Version Match ! POMXML and TAGVERSION, ($TAG_VERSION)"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -30,6 +60,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Compute image name
+        id: image
+        run: |
+          IMG="ghcr.io/${GITHUB_REPOSITORY}"
+          IMG="${IMG,,}"          # lowercase
+          echo "image=$IMG" >> $GITHUB_OUTPUT
+
       - name: Build & Push Multi-Architecture Image
         uses: docker/build-push-action@v5
         with:
@@ -37,5 +74,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ${{ steps.image.outputs.image }}:latest
+            ${{ steps.image.outputs.image }}:${{ env.TAG_VERSION }}

@@ -1,11 +1,20 @@
 # Multi-stage build for Spring Boot app with lib-version dependency
 FROM maven:latest AS builder
 
-WORKDIR /build
+WORKDIR /app
 
-# F2: Configure Maven settings for GitHub Package Registry
-RUN mkdir -p /root/.m2
-COPY app/settings.xml /root/.m2/settings.xml
+COPY pom.xml .mvn/settings.xml ./
+
+RUN --mount=type=secret,id=GITHUB_TOKEN \
+    export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+    mvn -B -s settings.xml dependency:go-offline
+
+
+COPY src ./src
+
+RUN --mount=type=secret,id=GITHUB_TOKEN \
+    export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+    mvn -B -s settings.xml clean package -DskipTests
 
 # F2: build with released lib-version from GitHub Package Registry
 WORKDIR /build/app
@@ -39,5 +48,10 @@ ENV MODEL_HOST=${MODEL_HOST:-http://model-service:8081}
 # Expose the configurable port
 EXPOSE ${SERVER_PORT}
 
+<<<<<<< HEAD
 # Run the application
 CMD ["java", "-jar", "app.jar"]
+=======
+ENTRYPOINT ["sh", "-c"]
+CMD ["java -jar app.jar --server.port=${SERVER_PORT}} --model.host=${MODEL_HOST}"]
+>>>>>>> 82c76f9 (feat: use secret token to fetch lib-version)

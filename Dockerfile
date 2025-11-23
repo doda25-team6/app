@@ -15,7 +15,15 @@ COPY pom.xml .
 COPY .mvn/settings.xml .mvn/settings.xml
 
 # Download dependencies
-RUN mvn -B -s .mvn/settings.xml dependency:go-offline
+# RUN mvn -B -s .mvn/settings.xml dependency:go-offline
+
+RUN if [ -f /run/secrets/GITHUB_TOKEN ]; then \
+        echo "Using BuildKit secret for GitHub Packages"; \
+        export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN); \
+    else \
+        echo "No secret found — using ARG/ENV fallback (docker-compose mode)"; \
+    fi && \
+    mvn -B -s .mvn/settings.xml dependency:go-offline
 
 # RUN --mount=type=secret,id=GITHUB_TOKEN \
 #     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
@@ -24,7 +32,15 @@ RUN mvn -B -s .mvn/settings.xml dependency:go-offline
 
 COPY src ./src
 
-RUN mvn -B -s .mvn/settings.xml clean package -DskipTests
+# RUN mvn -B -s .mvn/settings.xml clean package -DskipTests
+
+RUN if [ -f /run/secrets/GITHUB_TOKEN ]; then \
+        echo "Using BuildKit secret for GitHub Packages"; \
+        export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN); \
+    else \
+        echo "No secret found — using ARG/ENV fallback (docker-compose mode)"; \
+    fi && \
+    mvn -B -s .mvn/settings.xml clean package -DskipTests
 
 # RUN --mount=type=secret,id=GITHUB_TOKEN \
 #     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \

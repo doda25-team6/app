@@ -76,5 +76,8 @@ jobs:
           tags: |
             ${{ steps.image.outputs.image }}:latest
             ${{ steps.image.outputs.image }}:${{ env.TAG_VERSION }}
+          build-args: |
+            GITHUB_USERNAME=${{ github.actor }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           secrets: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}

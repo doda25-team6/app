@@ -1,21 +1,50 @@
 # Multi-stage build for Spring Boot app with lib-version dependency
-FROM maven:latest AS builder
+FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
+
+# F2: Auth required for GitHub Package Registry
+ARG GITHUB_USERNAME
+ARG GITHUB_TOKEN
+
+# To make them available to Maven (used by settings.xml)
+ENV GITHUB_USERNAME=${GITHUB_USERNAME}
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 COPY pom.xml .
 COPY .mvn/settings.xml .mvn/settings.xml
 
-RUN --mount=type=secret,id=GITHUB_TOKEN \
-    export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+# Download dependencies
+# RUN mvn -B -s .mvn/settings.xml dependency:go-offline
+
+RUN if [ -f /run/secrets/GITHUB_TOKEN ]; then \
+        echo "Using BuildKit secret for GitHub Packages"; \
+        export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN); \
+    else \
+        echo "No secret found — using ARG/ENV fallback (docker-compose mode)"; \
+    fi && \
     mvn -B -s .mvn/settings.xml dependency:go-offline
+
+# RUN --mount=type=secret,id=GITHUB_TOKEN \
+#     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+#     mvn -B -s .mvn/settings.xml dependency:go-offline
 
 
 COPY src ./src
 
-RUN --mount=type=secret,id=GITHUB_TOKEN \
-    export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+# RUN mvn -B -s .mvn/settings.xml clean package -DskipTests
+
+RUN if [ -f /run/secrets/GITHUB_TOKEN ]; then \
+        echo "Using BuildKit secret for GitHub Packages"; \
+        export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN); \
+    else \
+        echo "No secret found — using ARG/ENV fallback (docker-compose mode)"; \
+    fi && \
     mvn -B -s .mvn/settings.xml clean package -DskipTests
+
+# RUN --mount=type=secret,id=GITHUB_TOKEN \
+#     export GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+#     mvn -B -s .mvn/settings.xml clean package -DskipTests
 
 
 # Stage 2: Runtime image
@@ -34,4 +63,4 @@ ENV MODEL_HOST=http://model-service:8081
 EXPOSE ${SERVER_PORT}
 
 ENTRYPOINT ["sh", "-c"]
-CMD ["java -jar app.jar --server.port=${SERVER_PORT}} --model.host=${MODEL_HOST}"]
+CMD ["java -jar app.jar --server.port=${SERVER_PORT} --model.host=${MODEL_HOST}"]

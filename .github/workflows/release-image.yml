@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "17"
           cache: maven
 
       - name: Read version from pom.xml
@@ -76,5 +76,8 @@ jobs:
           tags: |
             ${{ steps.image.outputs.image }}:latest
             ${{ steps.image.outputs.image }}:${{ env.TAG_VERSION }}
+          build-args: |
+            GITHUB_USERNAME=${{ github.actor }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           secrets: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}

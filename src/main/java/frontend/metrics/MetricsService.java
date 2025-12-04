@@ -62,8 +62,8 @@ public class MetricsService {
 
         long reports = timeOnSiteReports.get();
         double avgSeconds = 0.0;
+        double totalSeconds = totalTimeOnSiteMs.sum() / 1000.0;
         if (reports > 0) {
-            double totalSeconds = totalTimeOnSiteMs.sum() / 1000.0;
             avgSeconds = totalSeconds / reports;
         }
         m.append(String.format("time_on_site_seconds avg %.3f%n", avgSeconds));

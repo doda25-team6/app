@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import team6.version.VersionUtil;
 import frontend.data.Sms;
+import frontend.data.TimeOnSiteReport;
+import frontend.metrics.MetricsService;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
@@ -22,14 +24,15 @@ import jakarta.servlet.http.HttpServletRequest;
 public class FrontendController {
 
     private String modelHost;
+    private final RestTemplateBuilder rest;
+    private final MetricsService metricsService;
 
-    private RestTemplateBuilder rest;
-
-    public FrontendController(RestTemplateBuilder rest, Environment env) {
+    public FrontendController(RestTemplateBuilder rest, Environment env, MetricsService metricsService) {
         this.rest = rest;
+        this.metricsService = metricsService;
         this.modelHost = env.getProperty("MODEL_HOST");
         assertModelHost();
-        
+
         // F1: Use VersionUtil from lib-version for system information
         VersionUtil versionUtil = VersionUtil.getInstance();
         System.out.printf("[SMS Checker App] %s%n", versionUtil.getFullVersionInfo());
@@ -59,6 +62,8 @@ public class FrontendController {
 
     @GetMapping("/")
     public String index(Model m) {
+        // navigation path: user reached /sms/
+        metricsService.recordSmsPageVisit();
         m.addAttribute("hostname", modelHost);
         return "sms/index";
     }
@@ -66,6 +71,9 @@ public class FrontendController {
     @PostMapping({ "", "/" })
     @ResponseBody
     public Sms predict(@RequestBody Sms sms) {
+        // this is your "button click" – user clicked submit
+        metricsService.recordButtonClick();
+
         System.out.printf("Requesting prediction for \"%s\" ...\n", sms.sms);
         sms.result = getPrediction(sms);
         System.out.printf("Prediction: %s\n", sms.result);
@@ -82,6 +90,11 @@ public class FrontendController {
         }
     }
     
+    @PostMapping("/time-on-site")
+    @ResponseBody
+    public void reportTimeOnSite(@RequestBody TimeOnSiteReport report) {
+        metricsService.recordTimeOnSite(report.getTimeOnSiteMillis());
+    }
     /**
      * F1: Version information endpoint for monitoring purposes.
      * Demonstrates usage of VersionUtil from lib-version library.

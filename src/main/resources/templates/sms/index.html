@@ -24,5 +24,20 @@
 
 <p id="result"></p>
 
+  <script>
+    const startTime = Date.now();
+
+    function sendTimeOnSite() {
+      const timeOnSiteMs = Date.now() - startTime;
+      fetch('/sms/time-on-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeOnSiteMillis: timeOnSiteMs })
+      }).catch(() => {});
+    }
+
+    window.addEventListener('beforeunload', sendTimeOnSite);
+  </script>
+
 </body>
 </html>

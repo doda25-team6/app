@@ -1,5 +1,5 @@
 # Multi-stage build for Spring Boot app with lib-version dependency
-FROM maven:3.9-eclipse-temurin-17 AS builder
+FROM maven:3.9-eclipse-temurin-25 AS builder
 
 WORKDIR /app
 
@@ -48,7 +48,7 @@ RUN if [ -f /run/secrets/GITHUB_TOKEN ]; then \
 
 
 # Stage 2: Runtime image
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 

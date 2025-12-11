@@ -1,21 +1,38 @@
 name: Build & Publish Multi-Arch Image
 
-permissions:
-  contents: read
-  packages: write
-  
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+" 
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      new_major:
+        description: "New MAJOR version (required if bump_type = major)"
+        required: false
+        type: string
+      new_minor:
+        description: "New MINOR version (required if bump_type = minor)"
+        required: false
+        type: string
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK for Maven
         uses: actions/setup-java@v4
@@ -25,27 +42,93 @@ jobs:
           cache: maven
 
       - name: Read version from pom.xml
-        id: pom
+        id: version
         run: |
           POM_VERSION=$(mvn -q -Dexpression=project.version -DforceStdout help:evaluate)
           echo "POM_VERSION=$POM_VERSION" >> $GITHUB_ENV
           echo "pom.xml version: $POM_VERSION"
 
-      - name: Extract version from tag
-        id: tag
-        run: |
-          TAG="${GITHUB_REF_NAME}"        # e.g. v1.2.3
-          TAG_VERSION="${TAG#v}"          # strip v -> 1.2.3
-          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
-          echo "Tag version: $TAG_VERSION"
+      # - name: Extract version from tag
+      #   id: tag
+      #   run: |
+      #     TAG="${GITHUB_REF_NAME}"        # e.g. v1.2.3
+      #     TAG_VERSION="${TAG#v}"          # strip v -> 1.2.3
+      #     echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+      #     echo "Tag version: $TAG_VERSION"
 
-      - name: Validate version consistency
+      # - name: Validate version consistency
+      #   run: |
+      #     if [ "$POM_VERSION" != "$TAG_VERSION" ]; then
+      #       echo "ERROR: Tag version ($TAG_VERSION) different than pom.xml version ($POM_VERSION)"
+      #       exit 1
+      #     fi
+      #     echo "Version Match ! POMXML and TAGVERSION, ($TAG_VERSION)"
+
+      - name: Compute release and next snapshot
+        id: compute
         run: |
-          if [ "$POM_VERSION" != "$TAG_VERSION" ]; then
-            echo "ERROR: Tag version ($TAG_VERSION) different than pom.xml version ($POM_VERSION)"
-            exit 1
-          fi
-          echo "Version Match ! POMXML and TAGVERSION, ($TAG_VERSION)"
+          # Take the version from env (set in the previous step)
+          CURRENT="${POM_VERSION}"
+          echo "Current version from pom.xml: $CURRENT"
+
+          # strip '-SNAPSHOT' if present
+          BASE="${CURRENT%-SNAPSHOT}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+
+          case "${{ github.event.inputs.bump_type }}" in
+            patch)
+              # auto increment PATCH
+              PATCH=$((PATCH + 1))
+              ;;
+
+            minor)
+              # user must provide new MINOR
+              if [ -z "${{ github.event.inputs.new_minor }}" ]; then
+                echo "ERROR: bump_type=minor but 'new_minor' input is empty."
+                exit 1
+              fi
+
+              MINOR="${{ github.event.inputs.new_minor }}"
+              PATCH=0
+              ;;
+
+            major)
+              # user must provide new MAJOR
+              if [ -z "${{ github.event.inputs.new_major }}" ]; then
+                echo "ERROR: bump_type=major but 'new_major' input is empty."
+                exit 1
+              fi
+
+              MAJOR="${{ github.event.inputs.new_major }}"
+              MINOR=0
+              PATCH=0
+              ;;
+          esac
+
+          RELEASE_VERSION="$MAJOR.$MINOR.$PATCH"
+          NEXT_SNAPSHOT="$MAJOR.$MINOR.$((PATCH + 1))-SNAPSHOT"
+
+          echo "Release version: $RELEASE_VERSION"
+          echo "Next snapshot: $NEXT_SNAPSHOT"
+
+          echo "release=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "next_snapshot=$NEXT_SNAPSHOT" >> "$GITHUB_OUTPUT"
+
+      - name: Set release version in pom.xml
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.compute.outputs.release }} -DgenerateBackupPoms=false
+
+      # 4) Commit release version and tag it
+      - name: Commit release version and create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git status
+          git commit -am "Release ${{ steps.compute.outputs.release }}"
+
+          git tag "v${{ steps.compute.outputs.release }}"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -68,6 +151,7 @@ jobs:
           echo "image=$IMG" >> $GITHUB_OUTPUT
 
       - name: Build & Push Multi-Architecture Image
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -75,9 +159,25 @@ jobs:
           push: true
           tags: |
             ${{ steps.image.outputs.image }}:latest
-            ${{ steps.image.outputs.image }}:${{ env.TAG_VERSION }}
+            ${{ steps.image.outputs.image }}:${{ steps.compute.outputs.release }}
           build-args: |
             GITHUB_USERNAME=${{ github.actor }}
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           secrets: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+
+      # 5) Bump main to next pre-release ex:(X.Y.(Z+1)-SNAPSHOT)
+      - name: Set next snapshot version in pom.xml
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.compute.outputs.next_snapshot }} -DgenerateBackupPoms=false
+
+      - name: Commit next snapshot
+        run: |
+          git commit -am "Bump version to ${{ steps.compute.outputs.next_snapshot }}"
+
+      # 7) Push both commits and the tag
+      - name: Push commits and tags
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git push origin HEAD:main
+          git push origin --tags

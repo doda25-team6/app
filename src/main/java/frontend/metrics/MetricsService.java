@@ -100,12 +100,10 @@ public class MetricsService {
 
         long reports = timeOnSiteReports.get();
         double avgSeconds = 0.0;
-        double totalSeconds = totalTimeOnSiteMs.sum() / 1000.0;
         if (reports > 0) {
-            avgSeconds = totalSeconds / reports;
+            avgSeconds = (double) totalTimeOnSiteMs.sum() / 1000.0 / reports;
         }
-        m.append(String.format("time_on_site_seconds avg %.3f%n", avgSeconds));
-        m.append(String.format("time_on_site_seconds total %.3f%n%n", totalSeconds));
+        m.append(String.format("time_on_site_seconds %.3f%n%n", avgSeconds));
 
         // 4) Page load time histogram (with labels)
         m.append("# HELP page_load_seconds Page load time distribution.\n");

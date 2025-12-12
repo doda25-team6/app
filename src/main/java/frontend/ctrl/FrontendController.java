@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import team6.version.VersionUtil;
+import frontend.data.PageLoadReport;
 import frontend.data.Sms;
 import frontend.data.TimeOnSiteReport;
 import frontend.metrics.MetricsService;
@@ -77,6 +78,7 @@ public class FrontendController {
         System.out.printf("Requesting prediction for \"%s\" ...\n", sms.sms);
         sms.result = getPrediction(sms);
         System.out.printf("Prediction: %s\n", sms.result);
+
         return sms;
     }
 
@@ -89,12 +91,19 @@ public class FrontendController {
             throw new RuntimeException(e);
         }
     }
-    
+
+    @PostMapping("/page-load")
+    @ResponseBody
+    public void reportPageLoad(@RequestBody PageLoadReport report) {
+        metricsService.recordPageLoad(report.getDurationSeconds(), report.getPage());
+    }
+
     @PostMapping("/time-on-site")
     @ResponseBody
     public void reportTimeOnSite(@RequestBody TimeOnSiteReport report) {
         metricsService.recordTimeOnSite(report.getTimeOnSiteMillis());
     }
+
     /**
      * F1: Version information endpoint for monitoring purposes.
      * Demonstrates usage of VersionUtil from lib-version library.
@@ -103,9 +112,9 @@ public class FrontendController {
     @ResponseBody
     public String getVersionInfo() {
         VersionUtil versionUtil = VersionUtil.getInstance();
-        return String.format("{\"library\": \"%s\", \"version\": \"%s\", \"buildTime\": \"%s\"}", 
-                           "lib-version", 
-                           versionUtil.getVersion(), 
-                           versionUtil.getBuildTime());
+        return String.format("{\"library\": \"%s\", \"version\": \"%s\", \"buildTime\": \"%s\"}",
+                "lib-version",
+                versionUtil.getVersion(),
+                versionUtil.getBuildTime());
     }
 }

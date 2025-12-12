@@ -1,43 +1,60 @@
 <html>
+
 <head>
-<meta charset="UTF-8" />
-<title>SMS Checker</title>
-<link rel="stylesheet" th:href="@{/sms/format.css}" />
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script th:src="@{/sms/script.js}"></script>
+  <meta charset="UTF-8" />
+  <title>SMS Checker</title>
+  <link rel="stylesheet" th:href="@{/sms/format.css}" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script th:src="@{/sms/script.js}"></script>
 </head>
+
 <body>
-<span id="hostname" th:text="${hostname}"></span>
-<h1>SMS Checker</h1>
+  <span id="hostname" th:text="${hostname}"></span>
+  <h1>SMS Checker</h1>
 
-<form>
+  <form>
 
-<textarea>Example SMS ...</textarea><br />
+    <textarea>Example SMS ...</textarea><br />
 
-<div class="radio">
-	<input type="radio" name="guess" value="ham" checked="checked" /> Ham<br />
-	<input type="radio" name="guess" value="spam" /> Spam<br />
-</div>
+    <div class="radio">
+      <input type="radio" name="guess" value="ham" checked="checked" /> Ham<br />
+      <input type="radio" name="guess" value="spam" /> Spam<br />
+    </div>
 
-<button>Send</button>
-</form>
+    <button>Send</button>
+  </form>
 
-<p id="result"></p>
+  <p id="result"></p>
 
   <script>
     const startTime = Date.now();
 
+    // Track page load time
+    window.addEventListener('load', function () {
+      const loadTime = (Date.now() - startTime) / 1000; // Convert to seconds
+      fetch('/sms/page-load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          durationSeconds: loadTime,
+          page: window.location.pathname
+        })
+      }).catch(() => { });
+    });
+
+    // Track time on site
     function sendTimeOnSite() {
       const timeOnSiteMs = Date.now() - startTime;
       fetch('/sms/time-on-site', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timeOnSiteMillis: timeOnSiteMs })
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     window.addEventListener('beforeunload', sendTimeOnSite);
   </script>
 
 </body>
+
 </html>

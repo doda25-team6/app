@@ -78,8 +78,7 @@ jobs:
 
           case "${{ github.event.inputs.bump_type }}" in
             patch)
-              # auto increment PATCH
-              PATCH=$((PATCH + 1))
+              PATCH=$((PATCH))
               ;;
 
             minor)
@@ -175,7 +174,7 @@ jobs:
         run: |
           git commit -am "Bump version to ${{ steps.compute.outputs.next_snapshot }}"
 
-      # 7) Push both commits and the tag
+      # 6) Push both commits and the tag
       - name: Push commits and tags
         if: github.ref == 'refs/heads/main'
         run: |

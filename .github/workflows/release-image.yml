@@ -170,13 +170,15 @@ jobs:
         run: |
           mvn versions:set -DnewVersion=${{ steps.compute.outputs.next_snapshot }} -DgenerateBackupPoms=false
 
-      - name: Commit next snapshot
-        run: |
-          git commit -am "Bump version to ${{ steps.compute.outputs.next_snapshot }}"
-
       # 6) Push both commits and the tag
       - name: Push commits and tags
         if: github.ref == 'refs/heads/main'
         run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          git add pom.xml
+          git commit -m "Bump version to ${{ steps.compute.outputs.next_snapshot }} after release"
+
           git push origin HEAD:main
           git push origin --tags

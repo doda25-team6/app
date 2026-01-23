@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Guard: only run on main
+      - name: Guard only run on main
         run: |
           if [ "${GITHUB_REF_NAME}" != "main" ]; then
             echo "ERROR: This workflow must be triggered from the 'main' branch. Current: ${GITHUB_REF_NAME}"

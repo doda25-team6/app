@@ -21,6 +21,11 @@ public class MetricsService {
     private final LongAdder totalTimeOnSiteMs = new LongAdder();
     private final AtomicLong timeOnSiteReports = new AtomicLong(0);
 
+    // Prediction confidence tracking
+    private final LongAdder totalConfidence = new LongAdder(); // Sum of confidence scores
+    private final AtomicLong confidencePredictions = new AtomicLong(0);
+    private final AtomicLong lowConfidencePredictions = new AtomicLong(0); // confidence < 0.7
+
     // Histogram: page load time buckets in seconds
     // Buckets: 0.05, 0.1, 0.25, 0.5, 1.0, +Inf
     private static final double[] BUCKETS = { 0.05, 0.1, 0.25, 0.5, 1.0 };
@@ -51,6 +56,25 @@ public class MetricsService {
             return;
         totalTimeOnSiteMs.add(timeMillis);
         timeOnSiteReports.incrementAndGet();
+    }
+
+    /**
+     * Record prediction confidence score
+     * 
+     * @param confidence - confidence score from 0.0 to 1.0
+     */
+    public void recordPredictionConfidence(double confidence) {
+        if (confidence < 0.0 || confidence > 1.0)
+            return;
+
+        // Store as integer (multiply by 1000) to use LongAdder
+        totalConfidence.add((long) (confidence * 1000));
+        confidencePredictions.incrementAndGet();
+
+        // Track low confidence predictions (< 70%)
+        if (confidence < 0.7) {
+            lowConfidencePredictions.incrementAndGet();
+        }
     }
 
     /**
@@ -105,7 +129,22 @@ public class MetricsService {
         }
         m.append(String.format("time_on_site_seconds %.3f%n%n", avgSeconds));
 
-        // 4) Page load time histogram (with labels)
+        // 4) Prediction confidence metrics
+        m.append("# HELP prediction_confidence_avg Average prediction confidence score (0-1).\n");
+        m.append("# TYPE prediction_confidence_avg gauge\n");
+
+        long confCount = confidencePredictions.get();
+        double avgConf = 0.0;
+        if (confCount > 0) {
+            avgConf = (double) totalConfidence.sum() / 1000.0 / confCount;
+        }
+        m.append(String.format("prediction_confidence_avg %.3f%n%n", avgConf));
+
+        m.append("# HELP low_confidence_predictions_total Number of predictions with confidence < 0.7.\n");
+        m.append("# TYPE low_confidence_predictions_total counter\n");
+        m.append(String.format("low_confidence_predictions_total %d%n%n", lowConfidencePredictions.get()));
+
+        // 5) Page load time histogram (with labels)
         m.append("# HELP page_load_seconds Page load time distribution.\n");
         m.append("# TYPE page_load_seconds histogram\n");
 

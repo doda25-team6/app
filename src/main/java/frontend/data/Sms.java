@@ -5,4 +5,5 @@ public class Sms {
     public String result;
     public String sms;
     public String guess;
+    public Double confidence;
 }

@@ -79,6 +79,11 @@ public class FrontendController {
         sms.result = getPrediction(sms);
         System.out.printf("Prediction: %s\n", sms.result);
 
+        // Record confidence metrics
+        if (sms.confidence != null) {
+            metricsService.recordPredictionConfidence(sms.confidence);
+        }
+
         return sms;
     }
 
@@ -86,7 +91,14 @@ public class FrontendController {
         try {
             var url = new URI(modelHost + "/predict");
             var c = rest.build().postForEntity(url, sms, Sms.class);
-            return c.getBody().result.trim();
+
+            // Extract response
+            if (c.getBody() != null) {
+                Sms response = c.getBody();
+                sms.confidence = response.confidence; // Pass through confidence score
+                return response.result != null ? response.result.trim() : "Error: No result";
+            }
+            return "Error: No response from model";
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
